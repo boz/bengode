@@ -21,13 +21,12 @@ type DictDecoder struct{}
 type ListDecoder struct{}
 
 func (decoder *StringDecoder) Decode(b *bufio.Reader) (interface{}, error) {
-
-	line, err := b.ReadString(':')
+	line, err := readString(b, ':')
 	if err != nil {
 		return nil, err
 	}
 
-	len, err := strconv.ParseUint(line[0:len(line)-1], 10, 64)
+	len, err := strconv.ParseUint(line, 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +46,12 @@ func (decoder *IntDecoder) Decode(b *bufio.Reader) (interface{}, error) {
 		return nil, err
 	}
 
-	line, err := b.ReadString('e')
+	line, err := readString(b, 'e')
 	if err != nil {
 		return nil, err
 	}
 
-	val, err := strconv.ParseInt(line[0:len(line)-1], 10, 64)
+	val, err := strconv.ParseInt(line, 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -174,4 +173,12 @@ func peekByte(b *bufio.Reader) (byte, error) {
 		return 0, err
 	}
 	return bytes[0], nil
+}
+
+func readString(b *bufio.Reader, terminator byte) (string, error) {
+	line, err := b.ReadString(terminator)
+	if err != nil {
+		return line, err
+	}
+	return line[0 : len(line)-1], nil
 }

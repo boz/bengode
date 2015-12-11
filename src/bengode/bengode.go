@@ -3,7 +3,6 @@ package bengode
 import (
 	"bufio"
 	"errors"
-	"io"
 	"strconv"
 )
 
@@ -11,14 +10,36 @@ type Decoder interface {
 	Decode(b *bufio.Reader) (interface{}, error)
 }
 
-type Encoder interface {
-	Encode(b *io.Writer)
-}
-
 type StringDecoder struct{}
 type IntDecoder struct{}
-type DictDecoder struct{}
 type ListDecoder struct{}
+type DictDecoder struct{}
+
+func Decode(b *bufio.Reader) (interface{}, error) {
+	decoder, err := GetDecoder(b)
+	if err != nil {
+		return nil, err
+	}
+	return decoder.Decode(b)
+}
+
+func GetDecoder(b *bufio.Reader) (Decoder, error) {
+	char, err := peekByte(b)
+	if err != nil {
+		return nil, err
+	}
+	switch char {
+	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+		return &StringDecoder{}, nil
+	case 'i':
+		return &IntDecoder{}, nil
+	case 'l':
+		return &ListDecoder{}, nil
+	case 'd':
+		return &DictDecoder{}, nil
+	}
+	return nil, errors.New("Invalid character")
+}
 
 func (decoder *StringDecoder) Decode(b *bufio.Reader) (interface{}, error) {
 	line, err := readString(b, ':')
@@ -128,32 +149,6 @@ func (decoder *DictDecoder) Decode(b *bufio.Reader) (interface{}, error) {
 
 	consumeByte(b, 'e')
 	return vals, nil
-}
-
-func Decode(b *bufio.Reader) (interface{}, error) {
-	decoder, err := GetDecoder(b)
-	if err != nil {
-		return nil, err
-	}
-	return decoder.Decode(b)
-}
-
-func GetDecoder(b *bufio.Reader) (Decoder, error) {
-	char, err := peekByte(b)
-	if err != nil {
-		return nil, err
-	}
-	switch char {
-	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return &StringDecoder{}, nil
-	case 'i':
-		return &IntDecoder{}, nil
-	case 'l':
-		return &ListDecoder{}, nil
-	case 'd':
-		return &DictDecoder{}, nil
-	}
-	return nil, errors.New("Invalid character")
 }
 
 func consumeByte(b *bufio.Reader, prefix byte) error {
